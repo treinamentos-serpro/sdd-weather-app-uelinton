@@ -25,6 +25,15 @@ Não haverá backend próprio nesta baseline. O navegador fará requisições HT
 
 ## Tech Stack
 
+Fatia de layout mock: `App.tsx` mantém `unit` e compõe os componentes existentes;
+`hooks/useMockWeather.ts` coordena estados e retry com uma função injetável,
+descartando respostas de consultas anteriores ou após desmontagem.
+`services/mockWeatherService.ts` simula latência de 500 ms e retorna somente a
+fixture de São Paulo, sem rede e sem fabricar clima para outras localidades.
+O estado inicial é `idle`; erro é exercitável por serviço substituto nos testes.
+Dados exibidos são identificados como fictícios. A entrada `main.tsx` e o CSS
+global habilitam a execução no Vite, sem aprovar contratos pendentes da API.
+
 | Área | Escolha | Justificativa |
 | --- | --- | --- |
 | Linguagem | TypeScript em modo strict | Tipar contratos de API e estados de carregamento/erro. |
@@ -75,6 +84,12 @@ Responsabilidades: componentes recebem props/estado e chamam callbacks; o hook c
 
 ## Data Model
 
+Fatia de previsão solicitada: `ForecastList.tsx` compõe `ForecastCard.tsx` em
+substituição ao componente único proposto. `lib/format.ts` formata datas ISO
+locais já normalizadas: a representação intermediária e o `Intl.DateTimeFormat`
+usam UTC para preservar o calendário independentemente do fuso do dispositivo.
+Datas inválidas têm fallback explícito, sem deslocar nem alterar outros itens.
+
 Os contratos abaixo são internos à aplicação; não representam uma cópia integral do payload de Open-Meteo. `types/openMeteo.ts` descreve a fatia externa necessária e funções puras em `lib/openMeteoMapper.ts` convertem essa fatia para os tipos internos. O conjunto diário definitivo depende da pergunta aberta sobre campos da previsão.
 
 ```ts
@@ -104,6 +119,7 @@ interface CurrentWeather {
   windSpeedKmh: number | null; // Velocidade do vento, em km/h
   windDirectionDegrees: number | null; // Direção do vento, em graus
   windGustsKmh: number | null; // Rajadas de vento, em km/h
+  pressureSurfaceHpa?: number | null; // Pressão na superfície, em hPa; extensão opcional da UI
 }
 
 interface ForecastDay {
@@ -124,6 +140,13 @@ interface WeatherData {
 ```
 
 Os campos refletem dados disponíveis no geocoding e no endpoint forecast da Open-Meteo. `admin1`, país, código do país, fuso, elevação e identificador podem não vir em todo resultado, por isso são opcionais; leituras meteorológicas podem ser nulas. `CurrentWeather.time` guarda o horário da observação retornado pela API, enquanto `WeatherData.fetchedAt` registra quando o cliente recebeu a resposta. `descriptionPtBr` é derivada localmente de `weatherCode`, não um campo garantido pela API. Máxima/mínima, sensação térmica, umidade, precipitação, vento e probabilidade de precipitação são campos disponíveis, mas sua exibição ainda depende da confirmação do conjunto mínimo na spec. A normalização produz uma entrada para cada uma das cinco datas locais; campos sem dados ficam `null`, sem fabricação de valores. Temperaturas internas ficam em Celsius; `Unit` é usada somente na apresentação.
+
+Extensão solicitada para o hero: `pressureSurfaceHpa` representa `surface_pressure`,
+não pressão ao nível do mar. É opcional para preservar fixtures existentes;
+ausência, `null` e valores não finitos aparecem como “Sem dados”. A integração
+HTTP continua fora desta tarefa. O utilitário de códigos e ícones será
+`lib/weatherCodes.ts`; `lib/temperature.ts` aplica provisoriamente a proposta
+de uma casa decimal da spec, sem marcar a decisão de produto como aprovada.
 
 Para controlar a UI, usar uniões discriminadas simples:
 

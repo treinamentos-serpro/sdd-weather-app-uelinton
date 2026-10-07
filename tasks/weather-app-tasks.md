@@ -129,6 +129,7 @@ representam dias ou horas.
 - **Prioridade:** P0
 - **Tamanho:** P
 - **Descrição:** Apresentar cidade, temperatura, descrição da condição e horário de observação/atualização.
+- **Fatia de UI solicitada:** Hero `CurrentWeather` com props `city`, `current`, `unit`, ícone de `lib/weatherCodes`, formatação de `lib/temperature` e métricas de umidade, vento, precipitação e pressão na superfície opcional. Cobrir conversão, fallback para dados ausentes/não finitos e códigos WMO desconhecidos; não incluir API nem marcar toda a tarefa como concluída.
 - **Critérios de aceite:** Com fixture de sucesso, a tela mostra nome da cidade, temperatura com unidade, descrição e horário de fonte; para cada campo obrigatório nulo mostra exatamente “Sem dados”; nenhuma fixture em loading/erro é renderizada como dado atual.
 - **Dependências:** T-02, T-03, T-04, T-09
 - **Arquivos prováveis:** `src/components/CurrentWeather.tsx`
@@ -139,6 +140,7 @@ representam dias ou horas.
 - **Prioridade:** P0
 - **Tamanho:** M
 - **Descrição:** Apresentar os cinco dias locais consecutivos e os indicadores diários aprovados.
+- **Fatia de UI solicitada:** `ForecastList` (`forecast`, `unit`) compõe `ForecastCard` (`day`, `unit`) com grid `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5`. Usar `lib/format` para rótulos de datas locais, `lib/weatherCodes` para ícones e `lib/temperature` para máxima/mínima; incluir probabilidade de chuva, estado vazio e “Sem dados” para leituras ausentes/inválidas. Validar associação de valores/datas em dois fusos; normalização e API ficam fora desta fatia.
 - **Critérios de aceite:** A renderização contém exatamente cinco itens com datas locais D a D+4; fixture com valores distintos mostra cada valor no item da data/índice correspondente mesmo sob fuso de dispositivo diferente; cada campo ausente mostra “Sem dados”; todas as temperaturas usam a unidade selecionada.
 - **Dependências:** T-03, T-04, T-05, T-09
 - **Arquivos prováveis:** `src/components/FiveDayForecast.tsx`
@@ -159,6 +161,7 @@ representam dias ou horas.
 - **Prioridade:** P0
 - **Tamanho:** M
 - **Descrição:** Criar apresentação dos estados da busca e da consulta, incluindo ação explícita de nova tentativa.
+- **Fatia de UI solicitada:** Componentes independentes em `src/components/states/`: `LoadingState` anuncia “Carregando...” com `role="status"`; `ErrorState` recebe `message` e `onRetry`, apresenta alerta e botão “Tentar novamente”; `EmptyState` recebe `title`/`hint` opcionais com título e dica padrão para busca vazia. Apenas apresentação, sem retry automático, HTTP ou coordenação de promises; testar acionamento único do callback por clique e teclado.
 - **Critérios de aceite:** Enquanto a promise está pendente, exibe “Carregando...” e remove essa mensagem ao resolver/rejeitar; resultado vazio exibe “Nenhuma cidade encontrada” e mantém busca editável; erro/timeout exibem alerta com mensagem não vazia e botão “Tentar novamente”; acionar retry invoca uma vez a mesma operação com os mesmos parâmetros.
 - **Dependências:** T-09
 - **Arquivos prováveis:** `src/components/WeatherStatus.tsx`
@@ -171,6 +174,7 @@ representam dias ou horas.
 - **Prioridade:** P0
 - **Tamanho:** G
 - **Descrição:** Integrar a primeira fatia do App para busca, seleção, clima atual e estados, sem esperar a previsão de cinco dias ou o toggle.
+- **Fatia mock solicitada:** `App` compõe marca, `SearchBar`, `UnitToggle`, clima atual, previsão e estados `idle/loading/empty/error/success`. `useMockWeather` coordena uma busca injetável; `mockWeatherService` retorna a fixture somente para São Paulo (comparação sem distinção de caixa/acentos), ou `null`. `unit` permanece estado do App e não dispara busca. Criar entrada Vite e CSS global; testar loading, vazio, falha, retry, conversão e entrada vazia. Não inclui geocoding, seleção de localidades ou integração Open-Meteo.
 - **Critérios de aceite:** Um serviço fake passado ao hook permite pesquisar e selecionar uma cidade e ver temperatura, descrição, horário e estados de loading/vazio/erro; `App.tsx` importa CitySearch, CurrentWeather e WeatherStatus; nenhum componente importa URL, tipo externo ou status HTTP do provedor.
 - **Dependências:** T-10, T-11, T-14
 - **Arquivos prováveis:** `src/App.tsx`
@@ -325,6 +329,8 @@ representam dias ou horas.
 - **Prioridade:** P1
 - **Tamanho:** M
 - **Descrição:** Verificar teclado, foco e nomes acessíveis nos fluxos principais.
+- **Revisão da fatia mock:** Corrigidos foco preservado em loading (`SearchBar.busy` com `aria-disabled` e bloqueio de envio), foco no input inválido e no conteúdo após retry, anúncio persistente de sucesso/vazio/unidade, anel de foco com offset no toggle e borda do input. Cálculo sRGB sobre cores compostas: borda anterior ~1,35:1, nova ~3,73:1; texto secundário ~8,83:1 e texto do toggle ativo ~7,42:1. Adicionados cenários Playwright em 320/768/1280 px para teclado, skip link, foco, colunas, overflow e screenshots. Isso não equivale à auditoria WCAG completa nem resolve a pendência de ferramenta/tecnologia assistiva aprovada na T-01.
+- **Limitação da validação:** Cenários E2E listados e tipados, mas execução visual bloqueada pela biblioteca de sistema `libnspr4.so` ausente no container. Após instalar dependências do Chromium, executar `pnpm exec playwright test tests/e2e/weather-accessibility.spec.ts --project=chromium`; complementar com leitor de tela e zoom antes do aceite de acessibilidade.
 - **Critérios de aceite:** O fluxo de busca e seleção pode ser concluído sem mouse; testes verificam nome acessível para cada controle interativo e foco visível após Tab; a ferramenta aprovada não reporta violações automáticas nas regras WCAG 2.2 AA verificadas nos estados de busca, sucesso e erro; o relatório registra ferramenta, versão e regras executadas.
 - **Dependências:** T-01, T-16, T-28
 - **Arquivos prováveis:** `tests/e2e/weather-accessibility.spec.ts`

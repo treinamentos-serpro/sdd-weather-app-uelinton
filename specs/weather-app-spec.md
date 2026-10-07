@@ -18,7 +18,13 @@ O sistema deve permitir pesquisar uma cidade pelo nome, apresentar os locais cor
 **FR-02 — Consultar condições atuais**  
 Após a seleção de uma cidade, o sistema deve apresentar suas condições atuais com, no mínimo, temperatura e descrição da condição climática. Deve informar o horário da observação ou da atualização conforme fornecido pela fonte. Outros indicadores e a idade máxima aceitável dos dados dependem de decisão de produto.
 
-**FR-03 — Consultar previsão de cinco dias**  
+Extensão de UI solicitada para FR-02: o hero apresenta temperatura, ícone e
+condição, além de umidade (%), vento (km/h), precipitação (mm) e pressão na
+superfície (hPa). A pressão é opcional no contrato; indicadores ausentes ou
+não finitos exibem “Sem dados”. Esta extensão não aprova as demais pendências
+da baseline nem inclui integração HTTP.
+
+**FR-03 — Consultar previsão de cinco dias**
 O sistema deve apresentar a previsão da cidade selecionada para cinco datas consecutivas: a data atual local e os quatro dias seguintes. O conjunto mínimo de indicadores por dia permanece pendente de validação.
 
 **FR-04 — Alternar unidade de temperatura**  
