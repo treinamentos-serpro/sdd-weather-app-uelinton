@@ -7,28 +7,23 @@ import EmptyState from './components/states/EmptyState';
 import ErrorState from './components/states/ErrorState';
 import LoadingState from './components/states/LoadingState';
 import UnitToggle from './components/UnitToggle';
-import { useMockWeather } from './hooks/useMockWeather';
-import { type MockWeatherSearch, searchMockWeather } from './services/mockWeatherService';
+import { useWeather } from './hooks/useWeather';
 import type { Unit } from './types/weather';
 
-interface AppProps {
-  searchWeather?: MockWeatherSearch;
-}
-
-export default function App({ searchWeather = searchMockWeather }: AppProps) {
+export default function App() {
   const [unit, setUnit] = useState<Unit>('celsius');
   const mainRef = useRef<HTMLElement>(null);
-  const { state, search, retry } = useMockWeather(searchWeather);
+  const { status, data, error, search, retry } = useWeather();
 
   const announcement =
-    state.status === 'success'
-      ? `Dados fict\u00edcios de ${state.data.city.name} carregados em graus ${unit === 'celsius' ? 'Celsius' : 'Fahrenheit'}.`
-      : state.status === 'empty'
+    status === 'success' && data
+      ? `Dados de ${data.city.name} carregados em graus ${unit === 'celsius' ? 'Celsius' : 'Fahrenheit'}.`
+      : status === 'empty'
         ? 'Nenhuma cidade encontrada.'
         : '';
 
   function handleRetry() {
-    retry();
+    void retry();
     mainRef.current?.focus();
   }
 
@@ -46,7 +41,7 @@ export default function App({ searchWeather = searchMockWeather }: AppProps) {
             <CloudSun aria-hidden="true" className="h-9 w-9 shrink-0 text-sun" />
             <h1 className="break-words text-2xl font-semibold">SDD Weather</h1>
           </div>
-          <SearchBar onSearch={search} busy={state.status === 'loading'} />
+          <SearchBar onSearch={search} busy={status === 'loading'} />
           <div className="justify-self-start lg:pb-0.5">
             <UnitToggle unit={unit} onChange={setUnit} />
           </div>
@@ -61,22 +56,22 @@ export default function App({ searchWeather = searchMockWeather }: AppProps) {
         tabIndex={-1}
         className="mx-auto min-w-0 max-w-6xl space-y-8 px-4 py-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-400 sm:px-6"
       >
-        {state.status === 'idle' && (
+        {status === 'idle' && (
           <EmptyState
             title="Clima na sua cidade"
             hint="Busque uma cidade para consultar o tempo."
           />
         )}
-        {state.status === 'loading' && <LoadingState />}
-        {state.status === 'empty' && <EmptyState />}
-        {state.status === 'error' && <ErrorState message={state.message} onRetry={handleRetry} />}
-        {state.status === 'success' && (
+        {status === 'loading' && <LoadingState />}
+        {status === 'empty' && <EmptyState />}
+        {status === 'error' && <ErrorState message={error ?? ''} onRetry={handleRetry} />}
+        {status === 'success' && data && (
           <>
-            <CurrentWeather city={state.data.city} current={state.data.current} unit={unit} />
-            <ForecastList forecast={state.data.forecast} unit={unit} />
+            <CurrentWeather city={data.city} current={data.current} unit={unit} />
+            <ForecastList forecast={data.forecast} unit={unit} />
             <p className="text-xs text-white/70">
-              {'Dados fict\u00edcios \u00b7 '}
-              <time dateTime={state.data.fetchedAt}>{state.data.fetchedAt}</time>
+              {'Open-Meteo \u00b7 '}
+              <time dateTime={data.fetchedAt}>{data.fetchedAt}</time>
             </p>
           </>
         )}

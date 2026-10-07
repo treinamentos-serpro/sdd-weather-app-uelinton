@@ -1,4 +1,29 @@
 import { expect, test } from '@playwright/test';
+import { mockWeatherData } from '../../src/lib/weatherMock';
+
+const { city, current, forecast } = mockWeatherData;
+const forecastResponse = {
+  timezone: mockWeatherData.timezone,
+  current: {
+    time: current.time,
+    temperature_2m: current.temperatureCelsius,
+    apparent_temperature: current.apparentTemperatureCelsius,
+    relative_humidity_2m: current.relativeHumidity,
+    is_day: current.isDay ? 1 : 0,
+    precipitation: current.precipitationMm,
+    weather_code: current.weatherCode,
+    wind_speed_10m: current.windSpeedKmh,
+    wind_direction_10m: current.windDirectionDegrees,
+    wind_gusts_10m: current.windGustsKmh,
+  },
+  daily: {
+    time: forecast.map((day) => day.date),
+    weather_code: forecast.map((day) => day.weatherCode),
+    temperature_2m_min: forecast.map((day) => day.temperatureMinCelsius),
+    temperature_2m_max: forecast.map((day) => day.temperatureMaxCelsius),
+    precipitation_probability_max: forecast.map((day) => day.precipitationProbabilityMax),
+  },
+};
 
 for (const viewport of [
   { width: 320, height: 800, columns: 2 },
@@ -8,6 +33,21 @@ for (const viewport of [
   test(`teclado, foco e layout em ${viewport.width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.route('https://**/*', (route) => route.abort());
+    let searchCalls = 0;
+    let forecastCalls = 0;
+    let releaseForecast: () => void = () => {};
+    const forecastReady = new Promise<void>((resolve) => {
+      releaseForecast = resolve;
+    });
+    await page.route('https://geocoding-api.open-meteo.com/v1/search?*', async (route) => {
+      searchCalls += 1;
+      await route.fulfill({ json: { results: [{ ...city, country_code: city.countryCode }] } });
+    });
+    await page.route('https://api.open-meteo.com/v1/forecast?*', async (route) => {
+      forecastCalls += 1;
+      await forecastReady;
+      await route.fulfill({ json: forecastResponse });
+    });
     const runtimeErrors: string[] = [];
     page.on('pageerror', (error) => runtimeErrors.push(error.message));
     await page.goto('/');
@@ -31,10 +71,11 @@ for (const viewport of [
       'aria-disabled',
       'true',
     );
+    releaseForecast();
     await expect(page.getByText('23,1 \u00b0C')).toBeVisible();
     await expect(input).toBeFocused();
     await expect(
-      page.getByText('Dados fict\u00edcios de S\u00e3o Paulo carregados em graus Celsius.'),
+      page.getByText('Dados de S\u00e3o Paulo carregados em graus Celsius.'),
     ).toHaveAttribute('aria-live', 'polite');
 
     await page.keyboard.press('Tab');
@@ -57,6 +98,8 @@ for (const viewport of [
       'true',
     );
     await expect(page.getByRole('article')).toHaveCount(5);
+    expect(searchCalls).toBe(1);
+    expect(forecastCalls).toBe(1);
 
     const layout = await page.evaluate(() => {
       const list = document.querySelector('main ul');
